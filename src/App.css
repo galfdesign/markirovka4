@@ -1,0 +1,354 @@
+.App {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  max-width: 1200px;
+  margin: 0 auto;
+  min-height: 100vh;
+  background: #f5f5f7;
+}
+
+.card {
+  background: white;
+  border-radius: 12px;
+  padding: 20px;
+  margin-bottom: 10px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.card-title {
+  font-size: 20px;
+  font-weight: 500;
+  color: #1d1d1f;
+  margin: 0;
+}
+
+.add-card {
+  background: white;
+  border-radius: 12px;
+  padding: 20px;
+  margin-bottom: 20px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+}
+
+.add-card:hover {
+  background: #f5f5f7;
+}
+
+.add-icon {
+  font-size: 24px;
+  color: #0071e3;
+}
+
+.form-group {
+  margin-bottom: 15px;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 8px;
+  color: #1d1d1f;
+  font-size: 14px;
+}
+
+.form-group input,
+.form-group select {
+  width: 100%;
+  padding: 12px;
+  border: 1px solid #d2d2d7;
+  border-radius: 8px;
+  font-size: 16px;
+  transition: border-color 0.2s ease;
+}
+
+.form-group input:focus,
+.form-group select:focus {
+  outline: none;
+  border-color: #0071e3;
+}
+
+.submit-button {
+  background: #0071e3;
+  color: white;
+  border: none;
+  padding: 12px 24px;
+  border-radius: 8px;
+  font-size: 16px;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.submit-button:hover {
+  background: #0077ed;
+}
+
+.App h1 {
+  color: #333;
+  margin-bottom: 30px;
+}
+
+.apple-card-wrapper {
+  max-width: 500px;
+  margin: 0 auto;
+  width: 100%;
+  padding: 32px 0 0 0;
+  box-sizing: border-box;
+}
+
+.apple-card-wrapper > div {
+  margin-bottom: 10px;
+}
+
+.apple-card-wrapper > div:last-child {
+  margin-bottom: 0;
+}
+
+.apple-create-btn {
+  display: block;
+  width: 100%;
+  margin: 32px 0 0 0;
+  padding: 16px 0;
+  background: #0071e3;
+  color: #fff;
+  font-size: 18px;
+  font-weight: 500;
+  border: none;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+  cursor: pointer;
+  transition: background 0.2s;
+  box-sizing: border-box;
+}
+
+.apple-create-btn:hover {
+  background: #005bb5;
+}
+
+.apple-create-btn--centered {
+  display: block;
+  width: 100%;
+  margin: 32px 0 0 0;
+  padding: 16px 0;
+  background: #0071e3;
+  color: #fff;
+  font-size: 18px;
+  font-weight: 500;
+  border: none;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+  cursor: pointer;
+  transition: background 0.2s;
+  box-sizing: border-box;
+}
+
+.apple-create-btn--centered:hover {
+  background: #005bb5;
+}
+
+.section-placeholder {
+  text-align: center;
+  padding: 40px 20px;
+  color: #666;
+  font-size: 18px;
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+  margin: 20px auto;
+  max-width: 500px;
+}
+
+.modal-backdrop {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0,0,0,0.5);
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  z-index: 1000;
+  padding-top: 20px;
+}
+
+.modal-window {
+  background: #fff;
+  border-radius: 16px 16px 0 0;
+  padding: 24px;
+  width: 100%;
+  max-width: 500px;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.1);
+  position: relative;
+}
+
+.modal-window h3 {
+  margin: 0 0 20px 0;
+  font-size: 20px;
+  color: #1d1d1f;
+}
+
+.modal-window .apple-card-field {
+  margin-bottom: 20px;
+}
+
+.modal-window .apple-card-field label {
+  display: block;
+  margin-bottom: 16px;
+  color: #1d1d1f;
+  font-size: 15px;
+  font-weight: 500;
+}
+
+.modal-window .apple-card-field input {
+  width: 100%;
+  padding: 12px;
+  border: 1px solid #d2d2d7;
+  border-radius: 8px;
+  font-size: 16px;
+  background: #fafafc;
+  transition: border-color 0.2s;
+  box-sizing: border-box;
+}
+
+.modal-window .apple-card-field input:focus {
+  outline: none;
+  border-color: #0071e3;
+}
+
+.modal-window .details-item input {
+  display: block;
+  margin-left: auto;
+  margin-right: auto;
+  text-align: center;
+}
+
+.modal-window.modal-small {
+  height: 430px !important;
+  min-height: 430px !important;
+  max-height: 430px !important;
+  padding: 14px !important;
+  font-size: 15px !important;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+}
+
+.modal-window.modal-small label {
+  font-size: 14px !important;
+  margin-bottom: 8px !important;
+}
+
+.modal-window.modal-small input,
+.modal-window.modal-small select {
+  font-size: 15px !important;
+  padding: 8px 10px !important;
+  margin-bottom: 8px !important;
+}
+
+.modal-window.modal-small .apple-card-field {
+  margin-bottom: 10px !important;
+}
+
+.modal-window.modal-small .details-item {
+  margin-bottom: 8px !important;
+}
+
+@media (max-width: 600px) {
+  .App {
+    padding-left: 20px !important;
+    padding-right: 20px !important;
+    padding-bottom: 50px !important;
+  }
+  
+  .apple-card-wrapper {
+    max-width: 100%;
+    margin: 0;
+    padding: 24px 0 0 0;
+  }
+  
+  .apple-create-btn {
+    position: fixed;
+    left: 39px;
+    right: 39px;
+    bottom: 16px;
+    margin: 0;
+    z-index: 100;
+    max-width: none;
+  }
+
+  .modal-backdrop {
+    padding-top: 0;
+  }
+
+  .modal-window {
+    margin: 0;
+    border-radius: 16px 16px 0 0;
+    padding: 20px;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    max-width: none;
+  }
+}
+
+@media (max-width: 700px) {
+  .App {
+    max-width: 100%;
+    min-width: 0;
+    width: 100%;
+    margin: 0 auto;
+    padding: 0;
+  }
+  .apple-card-wrapper {
+    max-width: 100%;
+    min-width: 0;
+    width: 100%;
+    margin: 0 auto;
+    padding: 16px 0 0 0;
+  }
+  .nor-results-block {
+    max-width: 100%;
+    min-width: 0;
+    width: 100%;
+    margin: 0 auto;
+  }
+  .force-desktop-nor {
+    display: block !important;
+    max-width: 1200px !important;
+    width: 100% !important;
+    margin: 24px auto 0 auto !important;
+    background: #fff !important;
+    border-radius: 12px !important;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08) !important;
+    /* любые другие desktop-стили */
+  }
+  .hidden-desktop-nor {
+    display: none !important;
+    width: 0 !important;
+    height: 0 !important;
+    overflow: hidden !important;
+  }
+  details {
+    display: none !important;
+  }
+  .details-grid {
+    grid-template-columns: 1fr !important;
+  }
+  .modal-window .details-item input {
+    width: 100% !important;
+    text-align: center;
+  }
+} 
