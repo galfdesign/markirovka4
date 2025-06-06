@@ -1,15 +1,15 @@
 {
   "files": {
     "main.css": "/markirovka4/static/css/main.79602c33.css",
-    "main.js": "/markirovka4/static/js/main.ebb55edd.js",
+    "main.js": "/markirovka4/static/js/main.cb929b20.js",
     "static/js/453.1906e322.chunk.js": "/markirovka4/static/js/453.1906e322.chunk.js",
     "index.html": "/markirovka4/index.html",
     "main.79602c33.css.map": "/markirovka4/static/css/main.79602c33.css.map",
-    "main.ebb55edd.js.map": "/markirovka4/static/js/main.ebb55edd.js.map",
+    "main.cb929b20.js.map": "/markirovka4/static/js/main.cb929b20.js.map",
     "453.1906e322.chunk.js.map": "/markirovka4/static/js/453.1906e322.chunk.js.map"
   },
   "entrypoints": [
     "static/css/main.79602c33.css",
-    "static/js/main.ebb55edd.js"
+    "static/js/main.cb929b20.js"
   ]
 }
