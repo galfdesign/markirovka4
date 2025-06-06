@@ -20,6 +20,41 @@ interface WaterDetailsModalProps {
   photo?: string | null;
 }
 
+// Функция для сжатия фото до 80 КБ
+async function compressImageToMaxSize(imageUrl: string, maxWidth = 800, maxSizeKB = 80): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const img = new window.Image();
+    img.crossOrigin = 'Anonymous';
+    img.onload = function () {
+      let width = img.width;
+      let height = img.height;
+      if (width > maxWidth) {
+        height = Math.round(height * (maxWidth / width));
+        width = maxWidth;
+      }
+      const canvas = document.createElement('canvas');
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) {
+        reject(new Error('Canvas context is null'));
+        return;
+      }
+      ctx.drawImage(img, 0, 0, width, height);
+      // Подбираем качество
+      let quality = 0.8;
+      let dataUrl = canvas.toDataURL('image/jpeg', quality);
+      while (dataUrl.length / 1024 > maxSizeKB && quality > 0.1) {
+        quality -= 0.1;
+        dataUrl = canvas.toDataURL('image/jpeg', quality);
+      }
+      resolve(dataUrl);
+    };
+    img.onerror = reject;
+    img.src = imageUrl;
+  });
+}
+
 const WaterDetailsModal: React.FC<WaterDetailsModalProps> = ({
   open,
   onClose,
@@ -168,18 +203,25 @@ const WaterDetailsModal: React.FC<WaterDetailsModalProps> = ({
                       type="file"
                       accept="image/*"
                       style={{display: 'none'}}
-                      onChange={e => {
+                      onChange={async e => {
                         const file = e.target.files && e.target.files[0];
                         if (file) {
                           const reader = new FileReader();
-                          reader.onload = (ev) => {
-                            const img = document.getElementById('water-details-photo-img');
-                            if (img && ev.target?.result) {
-                              img.setAttribute('src', ev.target.result as string);
-                              img.style.display = 'block';
-                              const clearBtn = document.getElementById('water-details-photo-clear');
-                              if (clearBtn) clearBtn.style.display = 'flex';
-                              setPhoto(ev.target.result as string);
+                          reader.onload = async (ev) => {
+                            if (ev.target?.result) {
+                              try {
+                                const compressed = await compressImageToMaxSize(ev.target.result as string, 800, 80);
+                                const img = document.getElementById('water-details-photo-img');
+                                if (img) {
+                                  img.setAttribute('src', compressed);
+                                  img.style.display = 'block';
+                                }
+                                const clearBtn = document.getElementById('water-details-photo-clear');
+                                if (clearBtn) clearBtn.style.display = 'flex';
+                                setPhoto(compressed);
+                              } catch {
+                                setPhoto(ev.target.result as string);
+                              }
                             }
                           };
                           reader.readAsDataURL(file);

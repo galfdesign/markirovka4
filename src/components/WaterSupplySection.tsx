@@ -289,7 +289,9 @@ const WaterSupplySection: React.FC<WaterSupplySectionProps> = ({ collectorName, 
                     display: 'flex',
                     flexDirection: 'column',
                     fontSize: 15,
-                    position: 'relative'
+                    position: 'relative',
+                    pageBreakInside: 'avoid',
+                    breakInside: 'avoid'
                   }}>
                     <div style={{
                       display: 'flex',
@@ -360,7 +362,7 @@ const WaterSupplySection: React.FC<WaterSupplySectionProps> = ({ collectorName, 
             currentHeight += rowHeightPx;
           });
           return (
-            <div style={{ width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', marginTop: 28, marginBottom: blocks.length > 0 ? 50 : 0 }}>
+            <div style={{ width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', marginTop: 28, marginBottom: blocks.length > 0 ? 50 : 0, pageBreakInside: 'avoid', breakInside: 'avoid' }}>
               {blocks}
             </div>
           );
