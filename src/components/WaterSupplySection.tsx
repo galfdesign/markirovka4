@@ -103,7 +103,39 @@ const WaterSupplySection: React.FC<WaterSupplySectionProps> = ({ collectorName, 
               gap: 0
             }}>
               <div style={{width: '100%', maxWidth: 500, minWidth: 0}}>
-                <FlowChart loops={loops} forceReady={forceReady} />
+                <div style={{marginBottom: 16}}>
+                  <b>Рекомендуемые расходы воды для санитарных приборов (Россия, СНиП/СП, СП 30.13330.2016):</b>
+                  <div style={{marginTop: 8, width: '100%', background: '#f9f9fb', borderRadius: 8, padding: '8px 8px'}}>
+                    {[
+                      {name: 'Умывальник', min: 4, max: 6},
+                      {name: 'Раковина кухонная', min: 6, max: 9},
+                      {name: 'Ванна (смеситель)', min: 12, max: 18},
+                      {name: 'Душ', min: 7, max: 12},
+                      {name: 'Биде', min: 4, max: 6},
+                      {name: 'Унитаз (слив)', min: 7, max: 9},
+                      {name: 'Стиральная машина', min: 9, max: 12},
+                      {name: 'Посудомоечная машина', min: 6, max: 9},
+                      {name: 'Тропический душ', min: 9, max: 12},
+                      {name: 'Поливочный кран', min: 9, max: 18},
+                    ].map((item, idx) => {
+                      const maxBar = 18;
+                      const barMin = Math.round((item.min / maxBar) * 100);
+                      const barMax = Math.round((item.max / maxBar) * 100);
+                      const percent = Math.round((item.max / maxBar) * 100);
+                      return (
+                        <div key={item.name} style={{display:'flex',alignItems:'center',marginBottom:4}}>
+                          <div style={{width: 120, fontSize: 13, color:'#222', flexShrink:0}}>{item.name}</div>
+                          <div style={{flex:1, height: 12, position:'relative', background:'#e0e0e6', borderRadius: 6, margin: '0 6px', minWidth: 40}}>
+                            <div style={{position:'absolute', left:0, top:0, height:'100%', borderRadius:6, background:'#0071e3', width: barMax + '%', opacity:0.25}}></div>
+                            <div style={{position:'absolute', left:0, top:0, height:'100%', borderRadius:6, background:'#0071e3', width: barMin + '%'}}></div>
+                          </div>
+                          <div style={{width: 40, textAlign:'right', fontSize: 13, color:'#1976d2', fontWeight: 600}}>{item.min}–{item.max} л/мин</div>
+                          <div style={{width: 38, textAlign:'left', fontSize: 12, color:'#888', marginLeft: 4}}>{percent}%</div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
               </div>
               <div style={{flex: 1, textAlign: 'right', minWidth: 0, display: 'flex', justifyContent: 'flex-end'}}>
                 <img src={photo} alt="Фото" style={{height: 320, maxWidth: 500, borderRadius: 10, boxShadow: '0 2px 8px rgba(0,0,0,0.08)', objectFit: 'contain'}} />

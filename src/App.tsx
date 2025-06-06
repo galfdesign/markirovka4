@@ -617,24 +617,15 @@ function App() {
         setShowExportBlockWater(false);
         return;
       }
-      let canvas: HTMLCanvasElement;
-      try {
-        canvas = await waitForCanvas('.export-water-section canvas');
-      } catch (e) {
-        alert('График не отрисован. Попробуйте чуть позже или обновите страницу.');
-        setIsLoadingPdf(false);
-        setShowExportBlockWater(false);
-        return;
-      }
       let data = norSectionEl.innerHTML;
-      let img = canvas.toDataURL();
+      // canvas больше не нужен, отправляем пустую строку
       const res = await fetch(`https://oyofgeyosh.beget.app/getPdf`, {
         headers: {
           Accept: "application/json",
           "Content-type": "application/json",
         },
         method: "POST",
-        body: JSON.stringify({ html: data, canvas: img, photo: waterPhoto }),
+        body: JSON.stringify({ html: data, canvas: '', photo: waterPhoto }),
       });
       const body = await res.json();
       console.log('Server response:', body);
