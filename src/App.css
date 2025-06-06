@@ -177,20 +177,27 @@
   bottom: 0;
   background: rgba(0,0,0,0.5);
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   justify-content: center;
   z-index: 1000;
-  padding-top: 20px;
+  padding-top: 0;
 }
 
 .modal-window {
   background: #fff;
-  border-radius: 16px 16px 0 0;
+  border-radius: 16px;
   padding: 24px;
   width: 100%;
   max-width: 500px;
   box-shadow: 0 4px 16px rgba(0,0,0,0.1);
   position: relative;
+  margin: 50px auto 0 auto !important;
+  left: unset;
+  right: unset;
+  top: unset;
+  bottom: unset;
+  max-height: 90vh;
+  box-sizing: border-box;
 }
 
 .modal-window h3 {
@@ -290,6 +297,8 @@
 
   .modal-backdrop {
     padding-top: 0;
+    align-items: flex-end;
+    animation: backdrop-fade-in 0.2s ease-out;
   }
 
   .modal-window {
@@ -297,10 +306,67 @@
     border-radius: 16px 16px 0 0;
     padding: 20px;
     position: fixed;
-    top: 0;
+    top: auto;
+    bottom: 0;
     left: 0;
     right: 0;
     max-width: none;
+    max-height: 90vh;
+    animation: modal-fade-in 0.2s ease-out;
+  }
+
+  /* Специальные стили для модального окна удаления */
+  .modal-window[style*="maxWidth: 320"] {
+    max-height: auto;
+    height: auto;
+    padding: 16px;
+  }
+
+  .modal-window[style*="maxWidth: 320"] div[style*="fontSize: 18"] {
+    font-size: 16px !important;
+    margin-bottom: 12px !important;
+  }
+
+  .modal-window[style*="maxWidth: 320"] div[style*="fontSize: 15"] {
+    font-size: 14px !important;
+    margin-bottom: 16px !important;
+  }
+
+  .modal-window[style*="maxWidth: 320"] div[style*="display:flex"] {
+    margin-top: 8px !important;
+  }
+
+  .modal-backdrop--centered {
+    align-items: center !important;
+  }
+  .modal-window--confirm {
+    height: 300px !important;
+    min-height: 300px !important;
+    max-height: 300px !important;
+    margin-bottom: auto !important;
+    margin-top: auto !important;
+    padding: 16px !important;
+    box-sizing: border-box;
+  }
+}
+
+@keyframes backdrop-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes modal-fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
   }
 }
 
@@ -350,5 +416,10 @@
   .modal-window .details-item input {
     width: 100% !important;
     text-align: center;
+  }
+  .modal-window {
+    width: 95vw !important;
+    max-width: 340px !important;
+    min-width: 0 !important;
   }
 } 

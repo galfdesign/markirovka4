@@ -14,18 +14,23 @@ ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend)
 
 interface FlowChartProps {
   loops: { room?: string; flowRate?: number }[];
+  forceReady?: boolean;
 }
 
-const FlowChart: React.FC<FlowChartProps> = ({ loops }) => {
-  const [isReady, setIsReady] = useState(false);
+const FlowChart: React.FC<FlowChartProps> = ({ loops, forceReady }) => {
+  const [isReady, setIsReady] = useState(!!forceReady);
 
   useEffect(() => {
+    if (forceReady) {
+      setIsReady(true);
+      return;
+    }
     const timer = setTimeout(() => {
       setIsReady(true);
     }, 300); // 300ms задержка для гарантии рендера
 
     return () => clearTimeout(timer);
-  }, [loops]); // Перерисовка при изменении данных
+  }, [loops, forceReady]); // Перерисовка при изменении данных
 
   const maxFlow = Math.max(...loops.map(l => l.flowRate ?? 0), 1);
   const percentData = loops.map(l => maxFlow ? ((l.flowRate ?? 0) / maxFlow) * 100 : 0);
@@ -53,6 +58,7 @@ const FlowChart: React.FC<FlowChartProps> = ({ loops }) => {
   };
   const options = {
     responsive: true,
+    animation: forceReady ? (false as const) : { duration: 800 },
     plugins: {
       legend: { display: false },
       title: { display: false },
@@ -89,7 +95,7 @@ const FlowChart: React.FC<FlowChartProps> = ({ loops }) => {
     maintainAspectRatio: false,
   };
   return (
-    <div style={{width: '100%', maxWidth: 500, minWidth: 0, height: 320, background: '#fff', borderRadius: 10, boxShadow: '0 2px 8px rgba(0,0,0,0.08)', padding: 8}}>
+    <div style={{width: '100%', maxWidth: 500, minWidth: 0, height: 320, borderRadius: 10, padding: 8}}>
       {isReady ? (
         <Bar data={data} options={options} height={320} />
       ) : (

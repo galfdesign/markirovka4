@@ -1,18 +1,32 @@
-import React, { useRef } from 'react';
+import React, { useRef, useLayoutEffect, useState } from 'react';
+import FlowChart from './FlowChart';
 
 interface WaterSupplySectionProps {
   collectorName: string;
   loops: { room?: string; flowRate?: number; resistance?: number; power?: number; regime?: string; usefulLength?: number; type?: string; innerDiameter?: number; device?: string; photo?: string | null; }[];
   photo?: string | null;
   containerRef?: React.Ref<HTMLDivElement>;
+  forceReady?: boolean;
 }
 
-const WaterSupplySection: React.FC<WaterSupplySectionProps> = ({ collectorName, loops, photo, containerRef }) => {
+const WaterSupplySection: React.FC<WaterSupplySectionProps> = ({ collectorName, loops, photo, containerRef, forceReady }) => {
   const totalFlow = loops.reduce((sum, l) => sum + (l.flowRate || 0), 0);
   const maxResistance = Math.max(...loops.map(l => l.resistance ?? 0));
   const maxLoops = loops
     .map((l, idx) => ({ ...l, idx }))
     .filter(l => l.resistance === maxResistance && maxResistance > 0);
+
+  // --- Линия переноса и перенос карточек ---
+  const sectionRef = useRef<HTMLDivElement>(null);
+  const cardsContainerRef = useRef<HTMLDivElement>(null);
+  const [cardsStartY, setCardsStartY] = useState(0);
+  useLayoutEffect(() => {
+    if (sectionRef.current && cardsContainerRef.current) {
+      const sectionRect = sectionRef.current.getBoundingClientRect();
+      const cardsRect = cardsContainerRef.current.getBoundingClientRect();
+      setCardsStartY(cardsRect.top - sectionRect.top);
+    }
+  }, [loops, photo, collectorName]);
 
   // Фильтруем только ХВС
   const coldLoops = loops.filter(l => l.type === 'ХВС');
@@ -21,15 +35,32 @@ const WaterSupplySection: React.FC<WaterSupplySectionProps> = ({ collectorName, 
   const recLoops = loops.filter(l => l.type === 'РГВС');
 
   return (
-    <div ref={containerRef} style={{
+    <div ref={el => {
+      if (typeof containerRef === 'function') containerRef(el);
+      else if (containerRef) (containerRef as React.MutableRefObject<HTMLDivElement | null>).current = el;
+      sectionRef.current = el;
+    }} style={{
       width: '1200px', 
       boxSizing: 'border-box', 
       margin: '40px auto 0 auto', 
-      background: '#fff', 
       borderRadius: '12px',
       display: 'flex',
-      flexDirection: 'column'
+      flexDirection: 'column',
+      position: 'relative'
     }}>
+      {/* Прозрачная линия переноса — только если высота блока >= 1596px */}
+      {sectionRef.current && sectionRef.current.offsetHeight >= 1596 && (
+        <div style={{
+          position: 'absolute',
+          top: '1596px',
+          left: 0,
+          width: '100%',
+          borderTop: '2px dashed #bbb',
+          zIndex: 10,
+          pointerEvents: 'none',
+          opacity: 0
+        }} />
+      )}
       <div style={{
         padding: '0 50px',
         display: 'flex',
@@ -72,39 +103,7 @@ const WaterSupplySection: React.FC<WaterSupplySectionProps> = ({ collectorName, 
               gap: 0
             }}>
               <div style={{width: '100%', maxWidth: 500, minWidth: 0}}>
-                <div style={{marginBottom: 16}}>
-                  <b>Рекомендуемые расходы воды для санитарных приборов (Россия, СНиП/СП, СП 30.13330.2016):</b>
-                  <div style={{marginTop: 8, width: '100%', background: '#f9f9fb', borderRadius: 8, padding: '8px 8px'}}>
-                    {[
-                      {name: 'Умывальник', min: 4, max: 6},
-                      {name: 'Раковина кухонная', min: 6, max: 9},
-                      {name: 'Ванна (смеситель)', min: 12, max: 18},
-                      {name: 'Душ', min: 7, max: 12},
-                      {name: 'Биде', min: 4, max: 6},
-                      {name: 'Унитаз (слив)', min: 7, max: 9},
-                      {name: 'Стиральная машина', min: 9, max: 12},
-                      {name: 'Посудомоечная машина', min: 6, max: 9},
-                      {name: 'Тропический душ', min: 9, max: 12},
-                      {name: 'Поливочный кран', min: 9, max: 18},
-                    ].map((item, idx) => {
-                      const maxBar = 18;
-                      const barMin = Math.round((item.min / maxBar) * 100);
-                      const barMax = Math.round((item.max / maxBar) * 100);
-                      const percent = Math.round((item.max / maxBar) * 100);
-                      return (
-                        <div key={item.name} style={{display:'flex',alignItems:'center',marginBottom:4}}>
-                          <div style={{width: 120, fontSize: 13, color: '#222', flexShrink:0}}>{item.name}</div>
-                          <div style={{flex:1, height: 12, position:'relative', background:'#e0e0e6', borderRadius: 6, margin: '0 6px', minWidth: 40}}>
-                            <div style={{position:'absolute', left:0, top:0, height:'100%', borderRadius:6, background:'#0071e3', width: barMax + '%', opacity:0.25}}></div>
-                            <div style={{position:'absolute', left:0, top:0, height:'100%', borderRadius:6, background:'#0071e3', width: barMin + '%'}}></div>
-                          </div>
-                          <div style={{width: 40, textAlign:'right', fontSize: 13, color:'#1976d2', fontWeight: 600}}>{item.min}–{item.max} л/мин</div>
-                          <div style={{width: 38, textAlign:'left', fontSize: 12, color:'#888', marginLeft: 4}}>{percent}%</div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
+                <FlowChart loops={loops} forceReady={forceReady} />
               </div>
               <div style={{flex: 1, textAlign: 'right', minWidth: 0, display: 'flex', justifyContent: 'flex-end'}}>
                 <img src={photo} alt="Фото" style={{height: 320, maxWidth: 500, borderRadius: 10, boxShadow: '0 2px 8px rgba(0,0,0,0.08)', objectFit: 'contain'}} />
@@ -113,6 +112,9 @@ const WaterSupplySection: React.FC<WaterSupplySectionProps> = ({ collectorName, 
           )}
           <div style={{marginBottom: 12}}>
             <b>Коллектор:</b> {collectorName || '-'}
+          </div>
+          <div style={{marginBottom: 12}}>
+            <b>Сводная таблица</b>
           </div>
           <div style={{marginBottom: 18}}>
             <div style={{fontWeight:700, fontSize:18, margin:'18px 0 8px 0', textAlign:'left'}}>Коллектор холодного водоснабжения</div>
@@ -211,13 +213,14 @@ const WaterSupplySection: React.FC<WaterSupplySectionProps> = ({ collectorName, 
             </tbody>
           </table>
         </div>
-        <div style={{ width: '100%', pageBreakBefore: 'always', breakBefore: 'page' }} />
         <div style={{ width: '100%', textAlign: 'center', fontWeight: 700, fontSize: 20, margin: '24px 0 16px 0', letterSpacing: 1 }}>Маркировка</div>
+        <div ref={cardsContainerRef}>
         {(() => {
           const cardHeightPx = 113;
-          const cardGapPx = 16;
-          const pageHeightPx = 800;
-          const cardsPerRow = 3;
+          const cardGapPx = 21;
+          const lineYAbsolute = 1596;
+          const lineY = lineYAbsolute - cardsStartY;
+          const cardsPerRow = 4;
           // Сортировка по типу: ХВС, ГВС, РГВС
           const typeOrder = { 'ХВС': 1, 'ГВС': 2, 'РГВС': 3 };
           const sortedLoops = [...loops].sort((a, b) => {
@@ -233,11 +236,11 @@ const WaterSupplySection: React.FC<WaterSupplySectionProps> = ({ collectorName, 
           let blocks: React.ReactElement[] = [];
           let currentHeight = 0;
           rows.forEach((row, rowIdx) => {
-            if (currentHeight + rowHeightPx > pageHeightPx && currentHeight > 0) {
+            if (currentHeight < lineY && currentHeight + rowHeightPx > lineY) {
               blocks.push(
-                <div key={'break-row-' + rowIdx} style={{ width: '100%', height: (pageHeightPx - currentHeight) + 'px' }} />
+                <div key={'break-row-' + rowIdx} style={{ width: '100%', height: (lineY - currentHeight) + cardGapPx + 'px' }} />
               );
-              currentHeight = 0;
+              currentHeight = lineY;
             }
             blocks.push(
               <div key={'row-' + rowIdx} style={{ display: 'flex', flexWrap: 'nowrap', gap: cardGapPx, justifyContent: 'center', marginBottom: rowIdx === rows.length-1 ? 0 : cardGapPx }}>
@@ -325,11 +328,12 @@ const WaterSupplySection: React.FC<WaterSupplySectionProps> = ({ collectorName, 
             currentHeight += rowHeightPx;
           });
           return (
-            <div style={{ width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', marginTop: 28, marginBottom: 50 }}>
+            <div style={{ width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', marginTop: 28, marginBottom: blocks.length > 0 ? 50 : 0 }}>
               {blocks}
             </div>
           );
         })()}
+        </div>
         {/* Блоки для фото опрессовки */}
         <div style={{ width: '100%', marginTop: '40px', marginBottom: '40px' }}>
           <div style={{ fontWeight: 700, fontSize: 20, marginBottom: '20px', textAlign: 'center' }}>Фото опрессовки</div>
@@ -368,11 +372,12 @@ const WaterSupplySection: React.FC<WaterSupplySectionProps> = ({ collectorName, 
                   <div>{loop.device || '-'}</div>
                 </div>
                 <div style={{
-                  width: '200px',
+                  minWidth: '200px',
+                  maxWidth: '100%',
                   height: '200px',
                   border: '1px solid #ddd',
                   borderRadius: '8px',
-                  overflow: 'hidden',
+                  overflow: 'auto',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
@@ -382,11 +387,13 @@ const WaterSupplySection: React.FC<WaterSupplySectionProps> = ({ collectorName, 
                     src={loop.photo || ''} 
                     alt={`Фото опрессовки ${index + 1}`}
                     style={{
-                      width: '100%',
                       height: '200px',
-                      objectFit: 'cover',
+                      width: 'auto',
+                      objectFit: 'contain',
                       objectPosition: 'center',
-                      borderRadius: '8px'
+                      borderRadius: '8px',
+                      display: 'block',
+                      margin: '0 auto'
                     }}
                   />
                 </div>

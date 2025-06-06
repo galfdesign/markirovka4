@@ -15,6 +15,7 @@ import RadiatorNorSection from './components/RadiatorNorSection';
 import RadiatorDetailsModal from './components/RadiatorDetailsModal';
 import RadiatorCardModal from './components/RadiatorCardModal';
 import WaterCardModal from './components/WaterCardModal';
+import ConfirmModal from './components/ConfirmModal';
 // @ts-ignore
 const pdfMake = window.pdfMake;
 // @ts-ignore
@@ -81,16 +82,14 @@ function App() {
   const [floorPhoto, setFloorPhoto] = useState<string | null>(process.env.PUBLIC_URL + '/koltp.png');
   const [floorShowModal, setFloorShowModal] = useState(false);
   const [floorModalData, setFloorModalData] = useState<CardData>({ room: '', collector: '', index: 0 });
-  const [floorShowDeleteConfirm, setFloorShowDeleteConfirm] = useState(false);
   const [floorDeleteIndex, setFloorDeleteIndex] = useState<number | null>(null);
 
   // Состояния для водоснабжения
   const [waterCards, setWaterCards] = useState<CardData[]>([]);
   const [waterCollectorName, setWaterCollectorName] = useState('');
-  const [waterPhoto, setWaterPhoto] = useState<string | null>(process.env.PUBLIC_URL + '/koltp.png');
+  const [waterPhoto, setWaterPhoto] = useState<string | null>(process.env.PUBLIC_URL + '/voda.png');
   const [waterShowModal, setWaterShowModal] = useState(false);
   const [waterModalData, setWaterModalData] = useState<CardData>({ room: '', collector: '', index: 0 });
-  const [waterShowDeleteConfirm, setWaterShowDeleteConfirm] = useState(false);
   const [waterDeleteIndex, setWaterDeleteIndex] = useState<number | null>(null);
 
   const [showObjectNameModal, setShowObjectNameModal] = useState(false);
@@ -106,14 +105,22 @@ function App() {
   // Состояния для радиаторов
   const [radiatorCards, setRadiatorCards] = useState<CardData[]>([]);
   const [radiatorCollectorName, setRadiatorCollectorName] = useState('');
-  const [radiatorPhoto, setRadiatorPhoto] = useState<string | null>(process.env.PUBLIC_URL + '/koltp.png');
+  const [radiatorPhoto, setRadiatorPhoto] = useState<string | null>(process.env.PUBLIC_URL + '/rad.png');
   const [radiatorShowModal, setRadiatorShowModal] = useState(false);
   const [radiatorModalData, setRadiatorModalData] = useState<CardData>({ room: '', collector: '', index: 0 });
-  const [radiatorShowDeleteConfirm, setRadiatorShowDeleteConfirm] = useState(false);
   const [radiatorDeleteIndex, setRadiatorDeleteIndex] = useState<number | null>(null);
   const radiatorListRef = useRef<HTMLDivElement>(null);
   const radiatorNorSectionRef = useRef<HTMLDivElement>(null);
   const radiatorPhotoInputRef = useRef<HTMLInputElement>(null);
+
+  const [confirmModalOpen, setConfirmModalOpen] = useState(false);
+  const [confirmModalAction, setConfirmModalAction] = useState<() => void>(() => () => {});
+  const [confirmModalTitle, setConfirmModalTitle] = useState('');
+  const [confirmModalMessage, setConfirmModalMessage] = useState('');
+
+  const [showExportBlock, setShowExportBlock] = useState(false);
+  const [showExportBlockWater, setShowExportBlockWater] = useState(false);
+  const [showExportBlockRadiator, setShowExportBlockRadiator] = useState(false);
 
   const handleSave = () => {
     const dataToSave = {
@@ -138,21 +145,13 @@ function App() {
   };
 
   const handleDelete = (index: number) => {
-    setFloorDeleteIndex(index);
-    setFloorShowDeleteConfirm(true);
-  };
-
-  const confirmDelete = () => {
-    if (floorDeleteIndex !== null) {
-      setFloorCards(floorCards.filter((_, i) => i !== floorDeleteIndex));
-    }
-    setFloorShowDeleteConfirm(false);
-    setFloorDeleteIndex(null);
-  };
-
-  const cancelDelete = () => {
-    setFloorShowDeleteConfirm(false);
-    setFloorDeleteIndex(null);
+    setConfirmModalTitle('Удалить петлю?');
+    setConfirmModalMessage('Вы действительно хотите удалить выбранную петлю? Это действие нельзя отменить.');
+    setConfirmModalAction(() => () => {
+      setFloorCards(floorCards.filter((_, i) => i !== index));
+      setConfirmModalOpen(false);
+    });
+    setConfirmModalOpen(true);
   };
 
   const handleEdit = (index: number) => {
@@ -211,236 +210,98 @@ function App() {
     pdfMake.createPdf(docDefinition).download('cards.pdf');
   };
 
-  const handleFloorPhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFloorPhotoChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files && e.target.files[0];
     if (file) {
       const reader = new FileReader();
-      reader.onload = (ev) => {
-        setFloorPhoto(ev.target?.result as string);
+      reader.onload = async (ev) => {
+        try {
+          const compressed = await compressImageToMaxSize(ev.target?.result as string);
+          setFloorPhoto(compressed);
+        } catch {
+          setFloorPhoto(ev.target?.result as string);
+        }
         if (floorPhotoInputRef.current) floorPhotoInputRef.current.value = '';
       };
       reader.readAsDataURL(file);
-    } else {
-      setFloorPhoto(process.env.PUBLIC_URL + '/koltp.png');
-      if (floorPhotoInputRef.current) floorPhotoInputRef.current.value = '';
     }
   };
 
-  const handleWaterPhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleWaterPhotoChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files && e.target.files[0];
     if (file) {
       const reader = new FileReader();
-      reader.onload = (ev) => {
-        setWaterPhoto(ev.target?.result as string);
+      reader.onload = async (ev) => {
+        try {
+          const compressed = await compressImageToMaxSize(ev.target?.result as string);
+          setWaterPhoto(compressed);
+        } catch {
+          setWaterPhoto(ev.target?.result as string);
+        }
         if (waterPhotoInputRef.current) waterPhotoInputRef.current.value = '';
       };
       reader.readAsDataURL(file);
-    } else {
-      setWaterPhoto(process.env.PUBLIC_URL + '/koltp.png');
-      if (waterPhotoInputRef.current) waterPhotoInputRef.current.value = '';
+    }
+  };
+
+  const handleRadiatorPhotoChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files && e.target.files[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = async (ev) => {
+        try {
+          const compressed = await compressImageToMaxSize(ev.target?.result as string);
+          setRadiatorPhoto(compressed);
+        } catch {
+          setRadiatorPhoto(ev.target?.result as string);
+        }
+        if (radiatorPhotoInputRef.current) radiatorPhotoInputRef.current.value = '';
+      };
+      reader.readAsDataURL(file);
     }
   };
 
   // Новый обработчик экспорта PDF только по видимой ширине блока с результатами
   const handleExportNorToPdf = async () => {
-    setIsLoadingPdf(true);
-    const norSection = floorNorSectionRef.current;
-    if (!norSection) {
-      alert('Скрытый десктопный блок результатов не найден!');
-      setIsLoadingPdf(false);
-      return;
-    }
-    // Временно убираем класс скрытия на мобильных
-    norSection.classList.remove('hidden-desktop-nor');
-    norSection.style.visibility = 'visible';
-    norSection.style.zIndex = '9999';
-    norSection.style.left = '0';
-    norSection.style.top = '0';
-    // Ждем загрузки изображений
-    const images = norSection.getElementsByTagName('img');
-    await Promise.all(Array.from(images).map(img => {
-      if (img.complete) return Promise.resolve();
-      return new Promise(resolve => {
-        img.onload = resolve;
-        img.onerror = resolve;
-      });
-    }));
-    await new Promise(resolve => setTimeout(resolve, 1500));
-    const width = norSection.offsetWidth;
-    const height = norSection.offsetHeight;
-    const canvas = await html2canvas(norSection, {
-      scale: 2,
-      useCORS: true,
-      backgroundColor: '#fff',
-      width,
-      height,
-      windowWidth: width,
-      windowHeight: height
-    });
-    // Скрываем блок обратно
-    norSection.classList.add('hidden-desktop-nor');
-    norSection.style.visibility = 'hidden';
-    norSection.style.zIndex = '9999';
-    const imgData = canvas.toDataURL('image/png');
-    const pdf = new jsPDF({
-      orientation: width > height ? 'landscape' : 'portrait',
-      unit: 'px',
-      format: [canvas.width, canvas.height]
-    });
-    pdf.addImage(imgData, 'PNG', 0, 0, canvas.width, canvas.height);
-    const pdfBlob = pdf.output('blob');
-
-    // Формируем имя файла: Напольное_отопление_{collectorName}_{DD.MM.YYYY_HH-mm}.pdf
-    const now = new Date();
-    const pad = (n: number) => n.toString().padStart(2, '0');
-    const dateStr = `${pad(now.getDate())}.${pad(now.getMonth()+1)}.${now.getFullYear()}_${pad(now.getHours())}-${pad(now.getMinutes())}`;
-    const safeCollector = floorCollectorName ? floorCollectorName.replace(/[^a-zA-Zа-яА-Я0-9_\-]/g, '_') : 'Без_названия';
-    const fileName = `Напольное_отопление_${safeCollector}_${dateStr}.pdf`;
-    const pdfFile = new File([pdfBlob], fileName, { type: 'application/pdf' });
-
-    if (navigator.canShare && navigator.canShare({ files: [pdfFile] }) && navigator.share) {
-      try {
-        await navigator.share({
-          files: [pdfFile],
-          title: `Напольное отопление${floorCollectorName ? ' — ' + floorCollectorName : ''}`,
-          text: `Напольное отопление${floorCollectorName ? ' — ' + floorCollectorName : ''}`
-        });
-      } catch (err) {
-        // Пользователь отменил отправку — ничего не делаем
-      }
-    } else {
-      alert('Ваш браузер не поддерживает отправку файлов через системное меню. Откройте сайт на мобильном устройстве или обновите браузер.');
-      // pdf.save('nor-section.pdf'); // Не сохраняем файл автоматически
-    }
-    setIsLoadingPdf(false);
-  };
-
-  // Новый обработчик экспорта PDF для водоснабжения
-  const handleExportWaterNorToPdf = async () => {
-    setIsLoadingPdf(true);
-    const norSection = waterNorSectionRef.current;
-    if (!norSection) {
-      alert('Скрытый десктопный блок результатов не найден!');
-      setIsLoadingPdf(false);
-      return;
-    }
-    norSection.classList.remove('hidden-desktop-nor');
-    norSection.style.visibility = 'visible';
-    norSection.style.zIndex = '9999';
-    norSection.style.left = '0';
-    norSection.style.top = '0';
-    const images = norSection.getElementsByTagName('img');
-    await Promise.all(Array.from(images).map(img => {
-      if (img.complete) return Promise.resolve();
-      return new Promise(resolve => {
-        img.onload = resolve;
-        img.onerror = resolve;
-      });
-    }));
-    await new Promise(resolve => setTimeout(resolve, 1500));
-    const width = norSection.offsetWidth;
-    const height = norSection.offsetHeight;
-    const canvas = await html2canvas(norSection, {
-      scale: 2,
-      useCORS: true,
-      backgroundColor: '#fff',
-      width,
-      height,
-      windowWidth: width,
-      windowHeight: height
-    });
-    norSection.classList.add('hidden-desktop-nor');
-    norSection.style.visibility = 'hidden';
-    norSection.style.zIndex = '9999';
-    const imgData = canvas.toDataURL('image/png');
-    const pdf = new jsPDF({
-      orientation: width > height ? 'landscape' : 'portrait',
-      unit: 'px',
-      format: [canvas.width, canvas.height]
-    });
-    pdf.addImage(imgData, 'PNG', 0, 0, canvas.width, canvas.height);
-    const pdfBlob = pdf.output('blob');
-    // Формируем имя файла: Водоснабжение_{collectorName}_{DD.MM.YYYY_HH-mm}.pdf
-    const now = new Date();
-    const pad = (n: number) => n.toString().padStart(2, '0');
-    const dateStr = `${pad(now.getDate())}.${pad(now.getMonth()+1)}.${now.getFullYear()}_${pad(now.getHours())}-${pad(now.getMinutes())}`;
-    const safeCollector = waterCollectorName ? waterCollectorName.replace(/[^a-zA-Zа-яА-Я0-9_\-]/g, '_') : 'Без_названия';
-    const fileName = `Водоснабжение_${safeCollector}_${dateStr}.pdf`;
-    const pdfFile = new File([pdfBlob], fileName, { type: 'application/pdf' });
-    if (navigator.canShare && navigator.canShare({ files: [pdfFile] }) && navigator.share) {
-      try {
-        await navigator.share({
-          files: [pdfFile],
-          title: `Водоснабжение${waterCollectorName ? ' — ' + waterCollectorName : ''}`,
-          text: `Водоснабжение${waterCollectorName ? ' — ' + waterCollectorName : ''}`
-        });
-      } catch (err) {}
-    } else {
-      alert('Ваш браузер не поддерживает отправку файлов через системное меню. Откройте сайт на мобильном устройстве или обновите браузер.');
-    }
-    setIsLoadingPdf(false);
-  };
-
-  // Преобразование картинки из public в dataURL
-  async function getImageAsDataURL(url: string): Promise<string> {
-    const response = await fetch(url);
-    const blob = await response.blob();
-    return await new Promise<string>((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onloadend = () => resolve(reader.result as string);
-      reader.onerror = reject;
-      reader.readAsDataURL(blob);
-    });
-  }
-
-  // PDFmake генератор для раздела НОР
-  const generateNorPdf = async () => {
-    let photoDataUrl = floorPhoto;
-    if (floorPhoto && !floorPhoto.startsWith('data:')) {
-      photoDataUrl = await getImageAsDataURL(floorPhoto);
-    }
-    const tableBody = [
-      [
-        { text: '№', style: 'tableHeader' },
-        { text: 'Помещение', style: 'tableHeader' },
-        { text: 'Длина', style: 'tableHeader' },
-        { text: 'Расход', style: 'tableHeader' },
-        { text: 'Сопротивление', style: 'tableHeader' },
-        { text: 'Мощность', style: 'tableHeader' },
-        { text: 'Режим', style: 'tableHeader' }
-      ],
-      ...floorCards.map((l, idx) => [
-        idx + 1,
-        l.room || '-',
-        l.usefulLength !== undefined ? l.usefulLength : '-',
-        l.flowRate !== undefined ? l.flowRate.toFixed(2) : '-',
-        l.resistance !== undefined ? l.resistance.toFixed(2) : '-',
-        l.power !== undefined ? l.power : '-',
-        l.regime || '-'
-      ])
-    ];
     const docDefinition = {
       content: [
-        { text: objectName || 'Объект', style: 'header' },
-        { text: 'Напольное отопление', style: 'subheader' },
-        { text: `Коллектор: ${floorCollectorName || '-'}`, margin: [0, 0, 0, 8] },
+        { text: 'Список карточек', style: 'header' },
         {
-          table: {
-            headerRows: 1,
-            widths: [20, '*', 40, 40, 50, 50, 50],
-            body: tableBody
-          },
-          layout: 'lightHorizontalLines'
+          ol: floorCards.map((card, idx) => (
+            { text: `Помещение: ${card.room || '-'}, Расход: ${card.collector || '-'}` }
+          ))
         },
-        photoDataUrl ? { image: photoDataUrl, width: 200, margin: [0, 16, 0, 0] } : null
+        { text: ' ', margin: [0, 10] },
+        { text: 'Карточки', style: 'header', margin: [0, 10, 0, 4] },
+        ...floorCards.map((card, idx) => ([
+          { text: `Карточка №${idx + 1}`, style: 'subheader', margin: [0, 8, 0, 2] },
+          { columns: [
+            { width: 'auto', text: 'Помещение:' },
+            { width: '*', text: card.room || '-' }
+          ]},
+          { columns: [
+            { width: 'auto', text: 'Расход:' },
+            { width: '*', text: card.collector || '-' }
+          ]},
+        ])).flat()
       ],
       styles: {
-        header: { fontSize: 18, bold: true, margin: [0, 0, 0, 8] },
-        subheader: { fontSize: 15, bold: true, margin: [0, 0, 0, 8] },
-        tableHeader: { bold: true, fontSize: 13, color: 'black' }
+        header: {
+          fontSize: 16,
+          bold: true,
+          margin: [0, 0, 0, 8]
+        },
+        subheader: {
+          fontSize: 13,
+          bold: true
+        }
+      },
+      defaultStyle: {
+        font: 'Roboto',
+        fontSize: 12
       }
     };
-    pdfMake.createPdf(docDefinition).download('nor-section.pdf');
+    pdfMake.createPdf(docDefinition).download('cards.pdf');
   };
 
   // Экспорт NorSection через html2pdf.js
@@ -513,73 +374,55 @@ function App() {
     setWaterShowModal(true);
   };
   const handleWaterDelete = (index: number) => {
-    setWaterDeleteIndex(index);
-    setWaterShowDeleteConfirm(true);
+    setConfirmModalTitle('Удалить выход?');
+    setConfirmModalMessage('Вы действительно хотите удалить выбранный выход? Это действие нельзя отменить.');
+    setConfirmModalAction(() => () => {
+      setWaterCards(waterCards.filter((_, i) => i !== index));
+      setConfirmModalOpen(false);
+    });
+    setConfirmModalOpen(true);
   };
 
   const handleExportRadiatorNorToPdf = async () => {
-    setIsLoadingPdf(true);
-    const norSection = radiatorNorSectionRef.current;
-    if (!norSection) {
-      alert('Скрытый десктопный блок результатов не найден!');
-      setIsLoadingPdf(false);
-      return;
-    }
-    norSection.classList.remove('hidden-desktop-nor');
-    norSection.style.visibility = 'visible';
-    norSection.style.zIndex = '9999';
-    norSection.style.left = '0';
-    norSection.style.top = '0';
-    const images = norSection.getElementsByTagName('img');
-    await Promise.all(Array.from(images).map(img => {
-      if (img.complete) return Promise.resolve();
-      return new Promise(resolve => {
-        img.onload = resolve;
-        img.onerror = resolve;
-      });
-    }));
-    await new Promise(resolve => setTimeout(resolve, 1500));
-    const width = norSection.offsetWidth;
-    const height = norSection.offsetHeight;
-    const canvas = await html2canvas(norSection, {
-      scale: 2,
-      useCORS: true,
-      backgroundColor: '#fff',
-      width,
-      height,
-      windowWidth: width,
-      windowHeight: height
-    });
-    norSection.classList.add('hidden-desktop-nor');
-    norSection.style.visibility = 'hidden';
-    norSection.style.zIndex = '9999';
-    const imgData = canvas.toDataURL('image/png');
-    const pdf = new jsPDF({
-      orientation: width > height ? 'landscape' : 'portrait',
-      unit: 'px',
-      format: [canvas.width, canvas.height]
-    });
-    pdf.addImage(imgData, 'PNG', 0, 0, canvas.width, canvas.height);
-    const pdfBlob = pdf.output('blob');
-    // Формируем имя файла: Водоснабжение_{collectorName}_{DD.MM.YYYY_HH-mm}.pdf
-    const now = new Date();
-    const pad = (n: number) => n.toString().padStart(2, '0');
-    const dateStr = `${pad(now.getDate())}.${pad(now.getMonth()+1)}.${now.getFullYear()}_${pad(now.getHours())}-${pad(now.getMinutes())}`;
-    const safeCollector = radiatorCollectorName ? radiatorCollectorName.replace(/[^a-zA-Zа-яА-Я0-9_\-]/g, '_') : 'Без_названия';
-    const fileName = `Радиаторы_${safeCollector}_${dateStr}.pdf`;
-    const pdfFile = new File([pdfBlob], fileName, { type: 'application/pdf' });
-    if (navigator.canShare && navigator.canShare({ files: [pdfFile] }) && navigator.share) {
-      try {
-        await navigator.share({
-          files: [pdfFile],
-          title: `Радиаторы${radiatorCollectorName ? ' — ' + radiatorCollectorName : ''}`,
-          text: `Радиаторы${radiatorCollectorName ? ' — ' + radiatorCollectorName : ''}`
-        });
-      } catch (err) {}
-    } else {
-      alert('Ваш браузер не поддерживает отправку файлов через системное меню. Откройте сайт на мобильном устройстве или обновите браузер.');
-    }
-    setIsLoadingPdf(false);
+    const docDefinition = {
+      content: [
+        { text: 'Список карточек', style: 'header' },
+        {
+          ol: radiatorCards.map((card, idx) => (
+            { text: `Помещение: ${card.room || '-'}, Расход: ${card.collector || '-'}` }
+          ))
+        },
+        { text: ' ', margin: [0, 10] },
+        { text: 'Карточки', style: 'header', margin: [0, 10, 0, 4] },
+        ...radiatorCards.map((card, idx) => ([
+          { text: `Карточка №${idx + 1}`, style: 'subheader', margin: [0, 8, 0, 2] },
+          { columns: [
+            { width: 'auto', text: 'Помещение:' },
+            { width: '*', text: card.room || '-' }
+          ]},
+          { columns: [
+            { width: 'auto', text: 'Расход:' },
+            { width: '*', text: card.collector || '-' }
+          ]},
+        ])).flat()
+      ],
+      styles: {
+        header: {
+          fontSize: 16,
+          bold: true,
+          margin: [0, 0, 0, 8]
+        },
+        subheader: {
+          fontSize: 13,
+          bold: true
+        }
+      },
+      defaultStyle: {
+        font: 'Roboto',
+        fontSize: 12
+      }
+    };
+    pdfMake.createPdf(docDefinition).download('cards.pdf');
   };
 
   const handleRadiatorSave = (data: any) => {
@@ -624,6 +467,282 @@ function App() {
       setWaterCards(newCards);
     }
     setWaterShowModal(false);
+  };
+
+  const handleRadiatorDelete = (index: number) => {
+    setConfirmModalTitle('Удалить радиатор?');
+    setConfirmModalMessage('Вы действительно хотите удалить выбранный радиатор? Это действие нельзя отменить.');
+    setConfirmModalAction(() => () => {
+      const newCards = [...radiatorCards];
+      newCards.splice(index, 1);
+      setRadiatorCards(newCards);
+      setRadiatorShowModal(false);
+      setConfirmModalOpen(false);
+    });
+    setConfirmModalOpen(true);
+  };
+
+  // Добавляем функцию ожидания появления canvas
+  function waitForCanvas(selector: string, timeout = 5000): Promise<HTMLCanvasElement> {
+    return new Promise((resolve, reject) => {
+      const start = Date.now();
+      function check() {
+        const canvas = document.querySelector(selector) as HTMLCanvasElement | null;
+        if (canvas && canvas.width > 0 && canvas.height > 0) {
+          resolve(canvas);
+        } else if (Date.now() - start > timeout) {
+          reject(new Error('Canvas не появился или имеет нулевые размеры'));
+        } else {
+          setTimeout(check, 100);
+        }
+      }
+      check();
+    });
+  }
+
+  // Функция для сжатия фото до 300 КБ
+  async function compressImageToMaxSize(imageUrl: string, maxWidth = 800, maxSizeKB = 300): Promise<string> {
+    return new Promise((resolve, reject) => {
+      const img = new window.Image();
+      img.crossOrigin = 'Anonymous';
+      img.onload = function () {
+        let width = img.width;
+        let height = img.height;
+        if (width > maxWidth) {
+          height = Math.round(height * (maxWidth / width));
+          width = maxWidth;
+        }
+        const canvas = document.createElement('canvas');
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) {
+          reject(new Error('Canvas context is null'));
+          return;
+        }
+        ctx.drawImage(img, 0, 0, width, height);
+        // Подбираем качество
+        let quality = 0.8;
+        let dataUrl = canvas.toDataURL('image/jpeg', quality);
+        while (dataUrl.length / 1024 > maxSizeKB && quality > 0.1) {
+          quality -= 0.1;
+          dataUrl = canvas.toDataURL('image/jpeg', quality);
+        }
+        resolve(dataUrl);
+      };
+      img.onerror = reject;
+      img.src = imageUrl;
+    });
+  }
+
+  const handleServerPdfTest = async () => {
+    setIsLoadingPdf(true);
+    setShowExportBlock(true);
+    try {
+      await new Promise(resolve => setTimeout(resolve, 50));
+      const norSectionEl = document.querySelector('.export-nor-section') as HTMLElement | null;
+      if (!norSectionEl) {
+        alert('Экспортируемый блок не найден!');
+        setIsLoadingPdf(false);
+        setShowExportBlock(false);
+        return;
+      }
+      let canvas: HTMLCanvasElement;
+      try {
+        canvas = await waitForCanvas('.export-nor-section canvas');
+      } catch (e) {
+        alert('График не отрисован. Попробуйте чуть позже или обновите страницу.');
+        setIsLoadingPdf(false);
+        setShowExportBlock(false);
+        return;
+      }
+      let data = norSectionEl.innerHTML;
+      let img = canvas.toDataURL();
+      const res = await fetch(`https://oyofgeyosh.beget.app/getPdf`, {
+        headers: {
+          Accept: "application/json",
+          "Content-type": "application/json",
+        },
+        method: "POST",
+        body: JSON.stringify({ html: data, canvas: img, photo: floorPhoto }),
+      });
+      const body = await res.json();
+      console.log('Server response:', body);
+      
+      // Если есть PDF в бинарном формате, создаем и скачиваем файл
+      if (body.pdf) {
+        const pdfBlob = new Blob([new Uint8Array(body.pdf)], { type: 'application/pdf' });
+        let fileName = 'export.pdf';
+        if (activeSection === 'floor') fileName = 'Напольное_отопление.pdf';
+        if (activeSection === 'water') fileName = 'Водоснабжение.pdf';
+        if (activeSection === 'radiator') fileName = 'Радиаторы.pdf';
+        const file = new File([pdfBlob], fileName, { type: 'application/pdf' });
+        if (navigator.canShare && navigator.canShare({ files: [file] }) && navigator.share) {
+          try {
+            await navigator.share({
+              files: [file],
+              title: 'PDF',
+              text: 'Экспортированный PDF'
+            });
+          } catch (err) {
+            // Пользователь отменил отправку — ничего не делаем
+          }
+        } else {
+          alert('Ваш браузер не поддерживает отправку файлов через системное меню. Откройте сайт на мобильном устройстве или обновите браузер.');
+        }
+      }
+
+      // 5. Скрыть блок обратно
+      norSectionEl.classList.add('hidden-desktop-nor');
+      norSectionEl.style.visibility = 'hidden';
+      norSectionEl.style.zIndex = '9999';
+    } catch (error) {
+      console.error('Error during server PDF generation:', error);
+      alert('Ошибка при генерации PDF на сервере: ' + error);
+    } finally {
+      setIsLoadingPdf(false);
+      setShowExportBlock(false);
+    }
+  };
+
+  const handleServerPdfTestWater = async () => {
+    setIsLoadingPdf(true);
+    setShowExportBlockWater(true);
+    try {
+      await new Promise(resolve => setTimeout(resolve, 50));
+      const norSectionEl = document.querySelector('.export-water-section') as HTMLElement | null;
+      if (!norSectionEl) {
+        alert('Экспортируемый блок не найден!');
+        setIsLoadingPdf(false);
+        setShowExportBlockWater(false);
+        return;
+      }
+      let canvas: HTMLCanvasElement;
+      try {
+        canvas = await waitForCanvas('.export-water-section canvas');
+      } catch (e) {
+        alert('График не отрисован. Попробуйте чуть позже или обновите страницу.');
+        setIsLoadingPdf(false);
+        setShowExportBlockWater(false);
+        return;
+      }
+      let data = norSectionEl.innerHTML;
+      let img = canvas.toDataURL();
+      const res = await fetch(`https://oyofgeyosh.beget.app/getPdf`, {
+        headers: {
+          Accept: "application/json",
+          "Content-type": "application/json",
+        },
+        method: "POST",
+        body: JSON.stringify({ html: data, canvas: img, photo: waterPhoto }),
+      });
+      const body = await res.json();
+      console.log('Server response:', body);
+      
+      // Если есть PDF в бинарном формате, создаем и скачиваем файл
+      if (body.pdf) {
+        const pdfBlob = new Blob([new Uint8Array(body.pdf)], { type: 'application/pdf' });
+        let fileName = 'export.pdf';
+        if (activeSection === 'floor') fileName = 'Напольное_отопление.pdf';
+        if (activeSection === 'water') fileName = 'Водоснабжение.pdf';
+        if (activeSection === 'radiator') fileName = 'Радиаторы.pdf';
+        const file = new File([pdfBlob], fileName, { type: 'application/pdf' });
+        if (navigator.canShare && navigator.canShare({ files: [file] }) && navigator.share) {
+          try {
+            await navigator.share({
+              files: [file],
+              title: 'PDF',
+              text: 'Экспортированный PDF'
+            });
+          } catch (err) {
+            // Пользователь отменил отправку — ничего не делаем
+          }
+        } else {
+          alert('Ваш браузер не поддерживает отправку файлов через системное меню. Откройте сайт на мобильном устройстве или обновите браузер.');
+        }
+      }
+
+      // 5. Скрыть блок обратно
+      norSectionEl.classList.add('hidden-desktop-nor');
+      norSectionEl.style.visibility = 'hidden';
+      norSectionEl.style.zIndex = '9999';
+    } catch (error) {
+      console.error('Error during server PDF generation:', error);
+      alert('Ошибка при генерации PDF на сервере: ' + error);
+    } finally {
+      setIsLoadingPdf(false);
+      setShowExportBlockWater(false);
+    }
+  };
+
+  const handleServerPdfTestRadiator = async () => {
+    setIsLoadingPdf(true);
+    setShowExportBlockRadiator(true);
+    try {
+      await new Promise(resolve => setTimeout(resolve, 50));
+      const norSectionEl = document.querySelector('.export-radiator-section') as HTMLElement | null;
+      if (!norSectionEl) {
+        alert('Экспортируемый блок не найден!');
+        setIsLoadingPdf(false);
+        setShowExportBlockRadiator(false);
+        return;
+      }
+      let canvas: HTMLCanvasElement;
+      try {
+        canvas = await waitForCanvas('.export-radiator-section canvas');
+      } catch (e) {
+        alert('График не отрисован. Попробуйте чуть позже или обновите страницу.');
+        setIsLoadingPdf(false);
+        setShowExportBlockRadiator(false);
+        return;
+      }
+      let data = norSectionEl.innerHTML;
+      let img = canvas.toDataURL();
+      const res = await fetch(`https://oyofgeyosh.beget.app/getPdf`, {
+        headers: {
+          Accept: "application/json",
+          "Content-type": "application/json",
+        },
+        method: "POST",
+        body: JSON.stringify({ html: data, canvas: img, photo: radiatorPhoto }),
+      });
+      const body = await res.json();
+      console.log('Server response:', body);
+      
+      // Если есть PDF в бинарном формате, создаем и скачиваем файл
+      if (body.pdf) {
+        const pdfBlob = new Blob([new Uint8Array(body.pdf)], { type: 'application/pdf' });
+        let fileName = 'export.pdf';
+        if (activeSection === 'floor') fileName = 'Напольное_отопление.pdf';
+        if (activeSection === 'water') fileName = 'Водоснабжение.pdf';
+        if (activeSection === 'radiator') fileName = 'Радиаторы.pdf';
+        const file = new File([pdfBlob], fileName, { type: 'application/pdf' });
+        if (navigator.canShare && navigator.canShare({ files: [file] }) && navigator.share) {
+          try {
+            await navigator.share({
+              files: [file],
+              title: 'PDF',
+              text: 'Экспортированный PDF'
+            });
+          } catch (err) {
+            // Пользователь отменил отправку — ничего не делаем
+          }
+        } else {
+          alert('Ваш браузер не поддерживает отправку файлов через системное меню. Откройте сайт на мобильном устройстве или обновите браузер.');
+        }
+      }
+
+      // 5. Скрыть блок обратно
+      norSectionEl.classList.add('hidden-desktop-nor');
+      norSectionEl.style.visibility = 'hidden';
+      norSectionEl.style.zIndex = '9999';
+    } catch (error) {
+      console.error('Error during server PDF generation:', error);
+      alert('Ошибка при генерации PDF на сервере: ' + error);
+    } finally {
+      setIsLoadingPdf(false);
+      setShowExportBlockRadiator(false);
+    }
   };
 
   const renderContent = () => {
@@ -681,8 +800,8 @@ function App() {
                 </svg>
                 ДОБАВИТЬ ПЕТЛЮ
               </button>
-              <button className="apple-create-btn--centered" style={{margin: '24px auto 0 auto', maxWidth: 320, background:'#0071e3', color:'#fff', display: 'block'}} onClick={handleExportNorToPdf}>
-                PDF
+              <button className="apple-create-btn--centered" style={{margin: '12px auto 0 auto', maxWidth: 320, background:'#4CAF50', color:'#fff', display: 'block'}} onClick={handleServerPdfTest}>
+                Экспорт PDF
               </button>
             </div>
             <details style={{ marginTop: 24, width: '100%', maxWidth: 1200, marginLeft: 'auto', marginRight: 'auto' }}>
@@ -706,7 +825,7 @@ function App() {
                   <div style={{marginTop: 12, display: 'flex', justifyContent: 'center'}}>
                     <div style={{position:'relative', display:'inline-block'}}>
                       <img src={waterPhoto} alt="Загруженное фото" style={{maxWidth: '100%', maxHeight: 220, borderRadius: 10, boxShadow: '0 2px 8px rgba(0,0,0,0.08)'}} />
-                      <button onClick={() => { setWaterPhoto(process.env.PUBLIC_URL + '/koltp.png'); if (waterPhotoInputRef.current) waterPhotoInputRef.current.value = ''; }} style={{position:'absolute',top:6,right:6,background:'rgba(255,255,255,0.85)',border:'none',borderRadius:'50%',width:32,height:32,display:'flex',alignItems:'center',justifyContent:'center',boxShadow:'0 1px 4px rgba(0,0,0,0.10)',cursor:'pointer'}} title="Удалить фото">
+                      <button onClick={() => { setWaterPhoto(process.env.PUBLIC_URL + '/voda.png'); if (waterPhotoInputRef.current) waterPhotoInputRef.current.value = ''; }} style={{position:'absolute',top:6,right:6,background:'rgba(255,255,255,0.85)',border:'none',borderRadius:'50%',width:32,height:32,display:'flex',alignItems:'center',justifyContent:'center',boxShadow:'0 1px 4px rgba(0,0,0,0.10)',cursor:'pointer'}} title="Удалить фото">
                         <svg width="18" height="18" viewBox="0 0 20 20" fill="none" stroke="#ff3b30" strokeWidth="2"><line x1="5" y1="5" x2="15" y2="15"/><line x1="15" y1="5" x2="5" y2="15"/></svg>
                       </button>
                     </div>
@@ -762,8 +881,8 @@ function App() {
                 </svg>
                 ДОБАВИТЬ ВЫХОД
               </button>
-              <button className="apple-create-btn--centered" style={{margin: '24px auto 0 auto', maxWidth: 320, background:'#0071e3', color:'#fff', display: 'block'}} onClick={handleExportWaterNorToPdf}>
-                PDF
+              <button className="apple-create-btn--centered" style={{margin: '12px auto 0 auto', maxWidth: 320, background:'#4CAF50', color:'#fff', display: 'block'}} onClick={handleServerPdfTestWater}>
+                Экспорт PDF
               </button>
             </div>
             <details style={{ marginTop: 24, width: '100%', maxWidth: 1200, marginLeft: 'auto', marginRight: 'auto' }}>
@@ -791,25 +910,12 @@ function App() {
                 <button className="apple-create-btn--centered" style={{background:'#eee', color:'#222', width: '100%', border: '2px solid #0071e3', boxShadow: '0 0 0 1px #0071e3'}} onClick={() => document.getElementById('photo-input-radiator')?.click()}>
                   Добавить фото
                 </button>
-                <input id="photo-input-radiator" type="file" accept="image/*" style={{display:'none'}} onChange={e => {
-                  const file = e.target.files && e.target.files[0];
-                  if (file) {
-                    const reader = new FileReader();
-                    reader.onload = (ev) => {
-                      setRadiatorPhoto(ev.target?.result as string);
-                      if (radiatorPhotoInputRef.current) radiatorPhotoInputRef.current.value = '';
-                    };
-                    reader.readAsDataURL(file);
-                  } else {
-                    setRadiatorPhoto(process.env.PUBLIC_URL + '/koltp.png');
-                    if (radiatorPhotoInputRef.current) radiatorPhotoInputRef.current.value = '';
-                  }
-                }} ref={radiatorPhotoInputRef} />
+                <input id="photo-input-radiator" type="file" accept="image/*" style={{display:'none'}} onChange={handleRadiatorPhotoChange} ref={radiatorPhotoInputRef} />
                 {radiatorPhoto && (
                   <div style={{marginTop: 12, display: 'flex', justifyContent: 'center'}}>
                     <div style={{position:'relative', display:'inline-block'}}>
                       <img src={radiatorPhoto} alt="Загруженное фото" style={{maxWidth: '100%', maxHeight: 220, borderRadius: 10, boxShadow: '0 2px 8px rgba(0,0,0,0.08)'}} />
-                      <button onClick={() => { setRadiatorPhoto(process.env.PUBLIC_URL + '/koltp.png'); if (radiatorPhotoInputRef.current) radiatorPhotoInputRef.current.value = ''; }} style={{position:'absolute',top:6,right:6,background:'rgba(255,255,255,0.85)',border:'none',borderRadius:'50%',width:32,height:32,display:'flex',alignItems:'center',justifyContent:'center',boxShadow:'0 1px 4px rgba(0,0,0,0.10)',cursor:'pointer'}} title="Удалить фото">
+                      <button onClick={() => { setRadiatorPhoto(process.env.PUBLIC_URL + '/rad.png'); if (radiatorPhotoInputRef.current) radiatorPhotoInputRef.current.value = ''; }} style={{position:'absolute',top:6,right:6,background:'rgba(255,255,255,0.85)',border:'none',borderRadius:'50%',width:32,height:32,display:'flex',alignItems:'center',justifyContent:'center',boxShadow:'0 1px 4px rgba(0,0,0,0.10)',cursor:'pointer'}} title="Удалить фото">
                         <svg width="18" height="18" viewBox="0 0 20 20" fill="none" stroke="#ff3b30" strokeWidth="2"><line x1="5" y1="5" x2="15" y2="15"/><line x1="15" y1="5" x2="5" y2="15"/></svg>
                       </button>
                     </div>
@@ -821,7 +927,7 @@ function App() {
                 <div key={index}>
                   <RadiatorAppleCard
                     number={index + 1}
-                    onDelete={() => { setRadiatorDeleteIndex(index); setRadiatorShowDeleteConfirm(true); }}
+                    onDelete={() => handleRadiatorDelete(index)}
                     onEdit={() => { setRadiatorModalData({ ...radiatorCards[index], index }); setRadiatorShowModal(true); }}
                     onUpdate={data => {
                       const newCards = [...radiatorCards];
@@ -854,8 +960,8 @@ function App() {
                 </svg>
                 ДОБАВИТЬ РАДИАТОР
               </button>
-              <button className="apple-create-btn--centered" style={{margin: '24px auto 0 auto', maxWidth: 320, background:'#0071e3', color:'#fff', display: 'block'}} onClick={handleExportRadiatorNorToPdf}>
-                PDF
+              <button className="apple-create-btn--centered" style={{margin: '12px auto 0 auto', maxWidth: 320, background:'#4CAF50', color:'#fff', display: 'block'}} onClick={handleServerPdfTestRadiator}>
+                Экспорт PDF
               </button>
             </div>
             <details style={{ marginTop: 24, width: '100%', maxWidth: 1200, marginLeft: 'auto', marginRight: 'auto' }}>
@@ -873,27 +979,6 @@ function App() {
               number={radiatorModalData.index + 1}
               roomOptions={ROOM_OPTIONS_RADIATOR}
             />
-            {radiatorShowDeleteConfirm && (
-              <div className="modal-backdrop" style={{zIndex: 3000}}>
-                <div className="modal-window" style={{maxWidth: 320, margin: '80px auto', textAlign: 'center'}}>
-                  <div style={{fontSize: 18, fontWeight: 600, marginBottom: 18}}>Удалить радиатор?</div>
-                  <div style={{fontSize: 15, color: '#666', marginBottom: 24}}>Вы действительно хотите удалить выбранный радиатор? Это действие нельзя отменить.</div>
-                  <div style={{display:'flex', gap: 8}}>
-                    <button className="apple-create-btn--centered" style={{width:'100%', background:'#ff3b30'}} onClick={() => {
-                      if (radiatorDeleteIndex !== null) {
-                        setRadiatorCards(radiatorCards.filter((_, i) => i !== radiatorDeleteIndex));
-                      }
-                      setRadiatorShowDeleteConfirm(false);
-                      setRadiatorDeleteIndex(null);
-                    }}>Удалить</button>
-                    <button className="apple-create-btn--centered" style={{width:'100%', background:'#eee', color:'#222'}} onClick={() => {
-                      setRadiatorShowDeleteConfirm(false);
-                      setRadiatorDeleteIndex(null);
-                    }}>Отмена</button>
-                  </div>
-                </div>
-              </div>
-            )}
           </>
         );
       default:
@@ -916,11 +1001,9 @@ function App() {
         </ol>
       </div>
       {renderContent()}
-      {/* Скрытый десктопный NorSection для PDF-экспорта */}
-      <div
-        ref={floorNorSectionRef}
-        className="hidden-desktop-nor"
-        style={{
+      {/* Скрытые экспортируемые блоки для PDF-экспорта */}
+      {showExportBlock && (
+        <div className="export-nor-section" style={{
           position: 'absolute',
           left: 0,
           top: 0,
@@ -937,22 +1020,20 @@ function App() {
           transformOrigin: 'top left',
           pageBreakInside: 'avoid',
           breakInside: 'avoid',
+          zIndex: 9999,
           visibility: 'hidden',
-          zIndex: 9999
-        }}
-      >
-        <NorSection 
-          collectorName={floorCollectorName} 
-          loops={floorCards} 
-          photo={floorPhoto}
-          containerRef={floorNorSectionRef}
-        />
-      </div>
-      {/* Скрытый десктопный WaterSection для PDF-экспорта */}
-      <div
-        ref={waterNorSectionRef}
-        className="hidden-desktop-nor"
-        style={{
+        }}>
+          <NorSection 
+            collectorName={floorCollectorName} 
+            loops={floorCards} 
+            photo={floorPhoto}
+            containerRef={null}
+            forceReady={true}
+          />
+        </div>
+      )}
+      {showExportBlockWater && (
+        <div className="export-water-section" style={{
           position: 'absolute',
           left: 0,
           top: 0,
@@ -969,22 +1050,20 @@ function App() {
           transformOrigin: 'top left',
           pageBreakInside: 'avoid',
           breakInside: 'avoid',
+          zIndex: 9999,
           visibility: 'hidden',
-          zIndex: 9999
-        }}
-      >
-        <WaterSupplySection 
-          collectorName={waterCollectorName} 
-          loops={waterCards} 
-          photo={waterPhoto}
-          containerRef={waterNorSectionRef}
-        />
-      </div>
-      {/* Скрытый десктопный RadiatorSection для PDF-экспорта */}
-      <div
-        ref={radiatorNorSectionRef}
-        className="hidden-desktop-nor"
-        style={{
+        }}>
+          <WaterSupplySection 
+            collectorName={waterCollectorName} 
+            loops={waterCards} 
+            photo={waterPhoto}
+            containerRef={null}
+            forceReady={true}
+          />
+        </div>
+      )}
+      {showExportBlockRadiator && (
+        <div className="export-radiator-section" style={{
           position: 'absolute',
           left: 0,
           top: 0,
@@ -1001,17 +1080,18 @@ function App() {
           transformOrigin: 'top left',
           pageBreakInside: 'avoid',
           breakInside: 'avoid',
+          zIndex: 9999,
           visibility: 'hidden',
-          zIndex: 9999
-        }}
-      >
-        <RadiatorNorSection 
-          collectorName={radiatorCollectorName} 
-          loops={radiatorCards} 
-          photo={radiatorPhoto}
-          containerRef={radiatorNorSectionRef}
-        />
-      </div>
+        }}>
+          <RadiatorNorSection 
+            collectorName={radiatorCollectorName} 
+            loops={radiatorCards} 
+            photo={radiatorPhoto}
+            containerRef={null}
+            forceReady={true}
+          />
+        </div>
+      )}
       {floorShowModal && (
         <div className="modal-backdrop">
           <div className="modal-window modal-small">
@@ -1073,18 +1153,6 @@ function App() {
           </div>
         </div>
       )}
-      {floorShowDeleteConfirm && (
-        <div className="modal-backdrop" style={{zIndex: 3000}}>
-          <div className="modal-window" style={{maxWidth: 320, margin: '80px auto', textAlign: 'center'}}>
-            <div style={{fontSize: 18, fontWeight: 600, marginBottom: 18}}>Удалить петлю?</div>
-            <div style={{fontSize: 15, color: '#666', marginBottom: 24}}>Вы действительно хотите удалить выбранную петлю? Это действие нельзя отменить.</div>
-            <div style={{display:'flex', gap: 8}}>
-              <button className="apple-create-btn--centered" style={{width:'100%', background:'#ff3b30'}} onClick={confirmDelete}>Удалить</button>
-              <button className="apple-create-btn--centered" style={{width:'100%', background:'#eee', color:'#222'}} onClick={cancelDelete}>Отмена</button>
-            </div>
-          </div>
-        </div>
-      )}
       {showObjectNameModal && (
         <div className="modal-backdrop">
           <div className="modal-window">
@@ -1120,27 +1188,15 @@ function App() {
           </div>
         </div>
       )}
-      {waterShowDeleteConfirm && (
-        <div className="modal-backdrop" style={{zIndex: 3000}}>
-          <div className="modal-window" style={{maxWidth: 320, margin: '80px auto', textAlign: 'center'}}>
-            <div style={{fontSize: 18, fontWeight: 600, marginBottom: 18}}>Удалить выход?</div>
-            <div style={{fontSize: 15, color: '#666', marginBottom: 24}}>Вы действительно хотите удалить выбранный выход? Это действие нельзя отменить.</div>
-            <div style={{display:'flex', gap: 8}}>
-              <button className="apple-create-btn--centered" style={{width:'100%', background:'#ff3b30'}} onClick={() => {
-                if (waterDeleteIndex !== null) {
-                  setWaterCards(waterCards.filter((_, i) => i !== waterDeleteIndex));
-                }
-                setWaterShowDeleteConfirm(false);
-                setWaterDeleteIndex(null);
-              }}>Удалить</button>
-              <button className="apple-create-btn--centered" style={{width:'100%', background:'#eee', color:'#222'}} onClick={() => {
-                setWaterShowDeleteConfirm(false);
-                setWaterDeleteIndex(null);
-              }}>Отмена</button>
-            </div>
-          </div>
-        </div>
-      )}
+      <ConfirmModal
+        open={confirmModalOpen}
+        onClose={() => setConfirmModalOpen(false)}
+        onConfirm={confirmModalAction}
+        title={confirmModalTitle}
+        message={confirmModalMessage}
+        confirmText="Удалить"
+        cancelText="Отмена"
+      />
     </div>
   );
 }

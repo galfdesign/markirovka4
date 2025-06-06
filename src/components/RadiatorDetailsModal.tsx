@@ -42,44 +42,62 @@ const RadiatorDetailsModal: React.FC<RadiatorDetailsModalProps> = ({
 
   // Копируем расчёт из DetailsModal
   const calculateResults = () => {
-    const diameter = innerDiameter;
-    let wattsPerMeter = 9;
-    let deltaCoef = 1;
-    if (localDeltaT >= 10) deltaCoef = 0.8;
-    else if (localDeltaT > 5) deltaCoef = 1 - (localDeltaT - 5) * 0.06;
-    // Если введена мощность вручную, пересчитываем usefulLength
-    let usefulLengthCalc = usefulLength;
-    if (manualPower !== '' && !isNaN(Number(manualPower))) {
-      usefulLengthCalc = (Number(manualPower) - (supplyLength * 5)) / (wattsPerMeter * deltaCoef);
-      if (usefulLengthCalc < 0) usefulLengthCalc = 0;
-    }
-    const power = manualPower !== '' && !isNaN(Number(manualPower)) ? Number(manualPower) : Math.round((usefulLength * wattsPerMeter * deltaCoef) + (supplyLength * 5));
-    const flowRate = localDeltaT > 0 ? power / (1.16 * localDeltaT * 60) : 0;
-    const Q_m3s = flowRate / 1000 / 60;
-    const d_m = diameter / 1000;
-    const A = Math.PI * (d_m / 2) ** 2;
-    const rho = 1000, g = 9.81, nu = 1e-6, mu = 0.001;
-    if (d_m <= 0 || A === 0 || Q_m3s <= 0) {
-      return { power, flowRate, resistance: Infinity, regime: 'ошибка', totalLength, usefulLength: usefulLengthCalc };
-    }
-    const v = Q_m3s / A;
+    // 1. Расчет мощности
+    const power = manualPower !== '' && !isNaN(Number(manualPower)) 
+      ? Number(manualPower) 
+      : Math.round((usefulLength * 9) + (supplyLength * 5));
+
+    // 2. Расчет расхода теплоносителя
+    // G = Q / (c * Δt)
+    // где c = 4200 Дж/(кг·°C) - удельная теплоемкость воды
+    const flowRate_kg_s = power / (4200 * localDeltaT); // кг/с
+    const flowRate_l_min = flowRate_kg_s * 60; // л/мин
+    const flowRate_m3_s = flowRate_kg_s / 1000; // м³/с
+
+    // 3. Расчет скорости воды в трубе
+    const d_m = innerDiameter / 1000; // диаметр в метрах
+    const A = Math.PI * Math.pow(d_m / 2, 2); // площадь поперечного сечения
+    const v = flowRate_m3_s / A; // скорость в м/с
+
+    // 4. Определение режима движения (число Рейнольдса)
+    const nu = 1e-6; // кинематическая вязкость воды
     const Re = v * d_m / nu;
+
+    // 5. Расчет потерь давления
     let deltaPUseful, deltaPSupply, resistance, regime;
+    const mu = 0.7e-3; // динамическая вязкость воды при 40°C
+
     if (Re < 2300) {
-      const baseDeltaP = (128 * mu * Q_m3s) / (Math.PI * Math.pow(d_m, 4));
-      deltaPUseful = baseDeltaP * usefulLengthCalc * 1.4;
-      deltaPSupply = baseDeltaP * supplyLength * 1.2;
-      resistance = (deltaPUseful + deltaPSupply) / 1000 + 7;
+      // Ламинарный режим
+      const baseDeltaP = (128 * mu * flowRate_m3_s) / (Math.PI * Math.pow(d_m, 4));
+      deltaPUseful = baseDeltaP * usefulLength * 1.4; // с учетом местных сопротивлений
+      deltaPSupply = baseDeltaP * supplyLength * 1.2; // с учетом местных сопротивлений
       regime = `Ламинарный (Re = ${Math.round(Re)})`;
     } else {
-      const lambda = 0.03;
+      // Турбулентный режим
+      const lambda = 0.03; // коэффициент трения
+      const rho = 1000; // плотность воды
+      const g = 9.81; // ускорение свободного падения
       const hfPerMeter = (lambda * Math.pow(v, 2)) / (2 * g * d_m);
-      deltaPUseful = rho * g * hfPerMeter * usefulLengthCalc * 1.4;
+      deltaPUseful = rho * g * hfPerMeter * usefulLength * 1.4;
       deltaPSupply = rho * g * hfPerMeter * supplyLength * 1.2;
-      resistance = (deltaPUseful + deltaPSupply) / 1000 + 7;
       regime = `Турбулентный (Re = ${Math.round(Re)})`;
     }
-    return { power, flowRate, resistance, regime, totalLength, usefulLength: usefulLengthCalc };
+
+    // 6. Расчет общего сопротивления
+    // Добавляем сопротивление радиатора (3 кПа) и арматуры (1 кПа)
+    const radiatorResistance = 3; // кПа
+    const fittingsResistance = 1; // кПа
+    resistance = (deltaPUseful + deltaPSupply) / 1000 + radiatorResistance + fittingsResistance;
+
+    return { 
+      power, 
+      flowRate: flowRate_l_min, 
+      resistance, 
+      regime, 
+      totalLength, 
+      usefulLength 
+    };
   };
 
   const results = calculateResults();

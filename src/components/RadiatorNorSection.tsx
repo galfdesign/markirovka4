@@ -1,4 +1,4 @@
-import React, { useRef } from 'react';
+import React, { useRef, useLayoutEffect, useState } from 'react';
 import FlowChart from './FlowChart';
 
 interface RadiatorNorSectionProps {
@@ -6,9 +6,21 @@ interface RadiatorNorSectionProps {
   loops: { room?: string; flowRate?: number; resistance?: number; power?: number; regime?: string; usefulLength?: number; supplyLength?: number; placement?: string; }[];
   photo?: string | null;
   containerRef?: React.Ref<HTMLDivElement>;
+  forceReady?: boolean;
 }
 
-const RadiatorNorSection: React.FC<RadiatorNorSectionProps> = ({ collectorName, loops, photo, containerRef }) => {
+const RadiatorNorSection: React.FC<RadiatorNorSectionProps> = ({ collectorName, loops, photo, containerRef, forceReady }) => {
+  const sectionRef = useRef<HTMLDivElement>(null);
+  const cardsContainerRef = useRef<HTMLDivElement>(null);
+  const [cardsStartY, setCardsStartY] = useState(0);
+  useLayoutEffect(() => {
+    if (sectionRef.current && cardsContainerRef.current) {
+      const sectionRect = sectionRef.current.getBoundingClientRect();
+      const cardsRect = cardsContainerRef.current.getBoundingClientRect();
+      setCardsStartY(cardsRect.top - sectionRect.top);
+    }
+  }, [loops, photo, collectorName]);
+
   const totalFlow = loops.reduce((sum, l) => sum + (l.flowRate || 0), 0);
   const maxResistance = Math.max(...loops.map(l => l.resistance ?? 0));
   const maxLoops = loops
@@ -16,7 +28,24 @@ const RadiatorNorSection: React.FC<RadiatorNorSectionProps> = ({ collectorName, 
     .filter(l => l.resistance === maxResistance && maxResistance > 0);
 
   return (
-    <div ref={containerRef} style={{width: '1200px', boxSizing: 'border-box', margin: '40px auto 0 auto', background: '#fff', borderRadius: '12px'}}>
+    <div ref={el => {
+      if (typeof containerRef === 'function') containerRef(el);
+      else if (containerRef) (containerRef as React.MutableRefObject<HTMLDivElement | null>).current = el;
+      sectionRef.current = el;
+    }} style={{width: '1200px', boxSizing: 'border-box', margin: '40px auto 0 auto', borderRadius: '12px', position: 'relative'}}>
+      {/* Прозрачная линия переноса — только если высота блока >= 1586px */}
+      {sectionRef.current && sectionRef.current.offsetHeight >= 1586 && (
+        <div style={{
+          position: 'absolute',
+          top: '1586px',
+          left: 0,
+          width: '100%',
+          borderTop: '2px dashed #bbb',
+          zIndex: 10,
+          pointerEvents: 'none',
+          opacity: 0
+        }} />
+      )}
       <div style={{padding: '0 50px'}}>
         <div style={{
           background:'#c4c4c4',
@@ -54,7 +83,7 @@ const RadiatorNorSection: React.FC<RadiatorNorSectionProps> = ({ collectorName, 
               gap: 0
             }}>
               <div style={{width: '100%', maxWidth: 500, minWidth: 0}}>
-                <FlowChart loops={loops} />
+                <FlowChart loops={loops} forceReady={forceReady} />
               </div>
               <div style={{flex: 1, textAlign: 'right', minWidth: 0, display: 'flex', justifyContent: 'flex-end'}}>
                 <img src={photo} alt="Фото" style={{height: 320, maxWidth: 500, borderRadius: 10, boxShadow: '0 2px 8px rgba(0,0,0,0.08)', objectFit: 'contain'}} />
@@ -63,6 +92,9 @@ const RadiatorNorSection: React.FC<RadiatorNorSectionProps> = ({ collectorName, 
           )}
           <div style={{marginBottom: 12}}>
             <b>Коллектор:</b> {collectorName || '-'}
+          </div>
+          <div style={{marginBottom: 12}}>
+            <b>Сводная таблица</b>
           </div>
           <div style={{display:'flex', gap:24, marginBottom: 12}}>
             <div><b>Суммарный расход:</b> {totalFlow.toFixed(2)} л/мин</div>
@@ -99,15 +131,14 @@ const RadiatorNorSection: React.FC<RadiatorNorSectionProps> = ({ collectorName, 
             </table>
             <div style={{fontSize: 13, color: '#888', marginTop: 4}}>* нумерация петель слева направо</div>
           </div>
-          {/* Разрыв перед блоком карточек: только pageBreakBefore */}
-          <div style={{ width: '100%', pageBreakBefore: 'always', breakBefore: 'page' }} />
           <div style={{ width: '100%', textAlign: 'center', fontWeight: 700, fontSize: 20, margin: '24px 0 16px 0', letterSpacing: 1 }}>Маркировка</div>
-          {/* Карточки помещений с переносом по строкам (ни одна строка не разрезается) */}
+          <div ref={cardsContainerRef}>
           {(() => {
             const cardHeightPx = 113;
-            const cardGapPx = 16;
-            const pageHeightPx = 800;
-            const cardsPerRow = 3;
+            const cardGapPx = 21;
+            const lineYAbsolute = 1586;
+            const lineY = lineYAbsolute - cardsStartY;
+            const cardsPerRow = 4;
             let rows = [];
             for (let i = 0; i < loops.length; i += cardsPerRow) {
               rows.push(loops.slice(i, i + cardsPerRow));
@@ -116,11 +147,11 @@ const RadiatorNorSection: React.FC<RadiatorNorSectionProps> = ({ collectorName, 
             let blocks: React.ReactElement[] = [];
             let currentHeight = 0;
             rows.forEach((row, rowIdx) => {
-              if (currentHeight + rowHeightPx > pageHeightPx && currentHeight > 0) {
+              if (currentHeight < lineY && currentHeight + rowHeightPx > lineY) {
                 blocks.push(
-                  <div key={'break-row-' + rowIdx} style={{ width: '100%', height: (pageHeightPx - currentHeight) + 'px' }} />
+                  <div key={'break-row-' + rowIdx} style={{ width: '100%', height: (lineY - currentHeight) + cardGapPx + 'px' }} />
                 );
-                currentHeight = 0;
+                currentHeight = lineY;
               }
               blocks.push(
                 <div key={'row-' + rowIdx} style={{ display: 'flex', flexWrap: 'nowrap', gap: cardGapPx, justifyContent: 'center', marginBottom: rowIdx === rows.length-1 ? 0 : cardGapPx }}>
@@ -183,11 +214,12 @@ const RadiatorNorSection: React.FC<RadiatorNorSectionProps> = ({ collectorName, 
               currentHeight += rowHeightPx;
             });
             return (
-              <div style={{ width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', marginTop: 28, marginBottom: 50 }}>
+              <div style={{ width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', marginTop: 28, marginBottom: blocks.length > 0 ? 50 : 0 }}>
                 {blocks}
               </div>
             );
           })()}
+          </div>
         </div>
       </div>
     </div>
