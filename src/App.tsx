@@ -219,7 +219,7 @@ function App() {
           const compressed = await compressImageToMaxSize(ev.target?.result as string);
           setFloorPhoto(compressed);
         } catch {
-          setFloorPhoto(ev.target?.result as string);
+        setFloorPhoto(ev.target?.result as string);
         }
         if (floorPhotoInputRef.current) floorPhotoInputRef.current.value = '';
       };
@@ -236,7 +236,7 @@ function App() {
           const compressed = await compressImageToMaxSize(ev.target?.result as string);
           setWaterPhoto(compressed);
         } catch {
-          setWaterPhoto(ev.target?.result as string);
+        setWaterPhoto(ev.target?.result as string);
         }
         if (waterPhotoInputRef.current) waterPhotoInputRef.current.value = '';
       };
@@ -587,7 +587,7 @@ function App() {
           } catch (err) {
             // Пользователь отменил отправку — ничего не делаем
           }
-        } else {
+      } else {
           alert('Ваш браузер не поддерживает отправку файлов через системное меню. Откройте сайт на мобильном устройстве или обновите браузер.');
         }
       }
@@ -1014,14 +1014,14 @@ function App() {
           zIndex: 9999,
           visibility: 'hidden',
         }}>
-          <NorSection 
-            collectorName={floorCollectorName} 
-            loops={floorCards} 
-            photo={floorPhoto}
+        <NorSection 
+          collectorName={floorCollectorName} 
+          loops={floorCards} 
+          photo={floorPhoto}
             containerRef={null}
             forceReady={true}
-          />
-        </div>
+        />
+      </div>
       )}
       {showExportBlockWater && (
         <div className="export-water-section" style={{
@@ -1044,14 +1044,14 @@ function App() {
           zIndex: 9999,
           visibility: 'hidden',
         }}>
-          <WaterSupplySection 
-            collectorName={waterCollectorName} 
-            loops={waterCards} 
-            photo={waterPhoto}
+        <WaterSupplySection 
+          collectorName={waterCollectorName} 
+          loops={waterCards} 
+          photo={waterPhoto}
             containerRef={null}
             forceReady={true}
-          />
-        </div>
+        />
+      </div>
       )}
       {showExportBlockRadiator && (
         <div className="export-radiator-section" style={{
@@ -1074,14 +1074,14 @@ function App() {
           zIndex: 9999,
           visibility: 'hidden',
         }}>
-          <RadiatorNorSection 
-            collectorName={radiatorCollectorName} 
-            loops={radiatorCards} 
-            photo={radiatorPhoto}
+        <RadiatorNorSection 
+          collectorName={radiatorCollectorName} 
+          loops={radiatorCards} 
+          photo={radiatorPhoto}
             containerRef={null}
             forceReady={true}
-          />
-        </div>
+        />
+      </div>
       )}
       {floorShowModal && (
         <div className="modal-backdrop">

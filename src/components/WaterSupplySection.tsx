@@ -272,20 +272,38 @@ const WaterSupplySection: React.FC<WaterSupplySectionProps> = ({ collectorName, 
               blocks.push(
                 <div key={'break-row-' + rowIdx} style={{ width: '100%', height: (lineY - currentHeight) + cardGapPx + 'px' }} />
               );
+              blocks.push(
+                <div key={'header-' + rowIdx} style={{
+                  background: 'rgb(196, 196, 196)',
+                  borderRadius: '2px',
+                  height: '32px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  padding: '0px',
+                  marginBottom: '18px',
+                  width: '100%',
+                  pageBreakBefore: 'always',
+                  breakBefore: 'page'
+                }}>
+                  <span style={{ fontWeight: 700, color: 'rgb(255, 255, 255)', fontSize: '16px', marginLeft: '24px' }}>GalfDesign</span>
+                  <span style={{ color: 'rgb(255, 255, 255)', fontSize: '14px', marginRight: '24px' }}>инженерные системы</span>
+                </div>
+              );
               currentHeight = lineY;
             }
             blocks.push(
               <div key={'row-' + rowIdx} style={{ display: 'flex', flexWrap: 'nowrap', gap: cardGapPx, justifyContent: 'center', marginBottom: rowIdx === rows.length-1 ? 0 : cardGapPx }}>
                 {row.map((l, idx) => (
                   <div key={idx} className='card' style={{
-                    background: '#fff',
+                    background: 'transparent',
                     borderRadius: 14,
                     padding: '12px',
                     width: '60mm',
                     height: '30mm',
                     border: `4px solid ${l.type === 'ХВС' ? '#2196f3' : l.type === 'ГВС' ? '#ff3b30' : l.type === 'РГВС' ? '#ffd600' : '#111'}`,
                     marginBottom: 0,
-                    boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
+                    boxShadow: 'none',
                     display: 'flex',
                     flexDirection: 'column',
                     fontSize: 15,
@@ -362,7 +380,17 @@ const WaterSupplySection: React.FC<WaterSupplySectionProps> = ({ collectorName, 
             currentHeight += rowHeightPx;
           });
           return (
-            <div style={{ width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', marginTop: 28, marginBottom: blocks.length > 0 ? 50 : 0, pageBreakInside: 'avoid', breakInside: 'avoid' }}>
+            <div style={{ 
+              width: '100%', 
+              display: 'flex', 
+              flexDirection: 'column', 
+              alignItems: 'center', 
+              marginTop: 28, 
+              marginBottom: blocks.length > 0 ? 50 : 0, 
+              pageBreakInside: 'avoid', 
+              breakInside: 'avoid',
+              background: 'transparent'
+            }}>
               {blocks}
             </div>
           );
